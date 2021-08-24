@@ -1,10 +1,13 @@
-import glob
+import glob,torch,os,cv2
+from PIL import Image
+from PIL import ImageFile
 import numpy as np
-import torch
-import os
-import cv2
+import imghdr
 from model.unet_model import UNet
-
+def create_path(filepath):
+    if not os.path.exists(filepath):
+        os.makedirs(filepath)
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 if __name__ == "__main__":
     # 选择设备，有cuda用cuda，没有就用cpu
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -17,16 +20,17 @@ if __name__ == "__main__":
     # 测试模式
     net.eval()
     # 读取所有图片路径
-    tests_path = glob.glob('sardata/test/image/*.png')
+    tests_path = glob.glob('./sardata/test/image/*.png')
+    create_path('./sardata/test/predict')
     # 遍历素有图片
+    ImageFile.LOAD_TRUNCATED_IMAGES = True
     for test_path in tests_path:
         # 保存结果地址
-
-        save_res_path = test_path.split('\\')[1]
-        a='sardata/test/predict\\'+save_res_path
-
-
+        save_res_path = test_path.split('/')[-1]
+        a='./sardata/test/predict/'+save_res_path
         # 读取图片
+        if imghdr.what(test_path) == "png":
+            Image.open(test_path).convert("RGB").save(test_path)
         img = cv2.imread(test_path)
         # 转为灰度图
         img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
@@ -44,4 +48,5 @@ if __name__ == "__main__":
         pred[pred >= 0.5] = 255
         pred[pred < 0.5] = 0
         # 保存图片
+        print(a)
         cv2.imwrite(a, pred)
